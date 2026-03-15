@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="coi-serviceworker.js"></script>
     <script>
+        // Force register the service worker for WASM permissions
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./coi-serviceworker.js', { scope: './' })
-                .then(() => console.log("Security Layer: Active"))
-                .catch(err => console.error("Security Layer: Failed", err));
+            navigator.serviceWorker.register('./coi-serviceworker.js');
         }
     </script>
-    <script src="coi-serviceworker.js"></script>
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,7 +36,7 @@
                 <canvas id="detection-canvas"></canvas>
             </div>
             <div class="info-bar">
-                <p>Status: <span id="labels-container">Initializing System...</span></p>
+                <p>Status: <span id="labels-container">Initializing Engine...</span></p>
             </div>
         </section>
 
@@ -59,7 +58,9 @@
         </section>
     </main>
 
-    <script src="app.js"></script>
+    <script src="edge-impulse-standalone.js?v=2"></script>
+
+    <script src="app.js?v=2"></script>
 
 </body>
 </html>
