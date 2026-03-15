@@ -4,59 +4,50 @@
     const canvas = document.getElementById('detection-canvas');
     const ctx = canvas.getContext('2d');
     const labelElement = document.getElementById('labels-container');
+    
+    const btnConnect = document.getElementById('btn-connect');
+    const statusText = document.getElementById('statusText');
+    const curVal = document.getElementById('cur-val');
+    const totalVal = document.getElementById('total-val');
+    let totalEnergy = 0;
 
     window.initAI = async function() {
         try {
             labelElement.innerText = "Waking up AI Engine...";
             
-            let TargetClass = window.EdgeImpulseClassifier || window.Classifier;
-            if (!TargetClass) {
-                await new Promise(r => setTimeout(r, 1000));
+            // THE FIX: Wait until the class is actually a 'function' (constructor)
+            let TargetClass = null;
+            for (let i = 0; i < 40; i++) {
                 TargetClass = window.EdgeImpulseClassifier || window.Classifier;
+                if (typeof TargetClass === 'function') break; 
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            if (typeof TargetClass !== 'function') {
+                labelElement.innerText = "Error: Engine failed to prime. Refreshing...";
+                location.reload();
+                return;
             }
 
             classifier = new TargetClass();
             await classifier.init();
             
             labelElement.innerText = "Connecting to Camera...";
-
-            // THE FIX: Constraints must be very simple for some mobile/laptop cams
-            const constraints = { 
-                video: { 
-                    facingMode: "environment",
-                    width: { ideal: 640 },
-                    height: { ideal: 480 }
-                } 
-            };
-
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "environment", width: 640, height: 480 } 
+            });
             
             video.srcObject = stream;
-            
-            // Critical: Wait for video to actually start playing
-            await new Promise((resolve) => {
-                video.onloadedmetadata = () => {
-                    video.play().then(resolve).catch(e => {
-                        console.error("Autoplay blocked:", e);
-                        labelElement.innerText = "Click anywhere to start Camera";
-                        document.body.addEventListener('click', () => video.play(), {once: true});
-                    });
-                };
-            });
-
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            labelElement.innerText = "AI System Active";
-            runInference();
+            video.onloadedmetadata = () => {
+                video.play();
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                labelElement.innerText = "AI System Active";
+                runInference();
+            };
 
         } catch (err) {
-            console.error("Camera Error:", err);
-            // Detailed error reporting
-            if (err.name === 'NotAllowedError') {
-                labelElement.innerText = "Permission Denied by Browser.";
-            } else {
-                labelElement.innerText = "Hardware Error: " + err.message;
-            }
+            labelElement.innerText = "Hardware Error: " + err.message;
         }
     };
 
@@ -76,5 +67,33 @@
             }
         } catch (e) {}
         requestAnimationFrame(runInference);
+    }
+
+    // --- ARDUINO SERIAL LOGIC ---
+    if ('serial' in navigator) {
+        btnConnect.addEventListener('click', async () => {
+            try {
+                const port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 9600 });
+                statusText.innerText = "🟢 Online";
+                btnConnect.innerText = "Connected";
+                
+                const reader = port.readable.getReader();
+                const decoder = new TextDecoder();
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    const data = decoder.decode(value).trim();
+                    if (data && !isNaN(data)) {
+                        const voltage = parseFloat(data);
+                        curVal.innerText = voltage.toFixed(2);
+                        totalEnergy += (voltage * 0.1);
+                        totalVal.innerText = totalEnergy.toFixed(3);
+                    }
+                }
+            } catch (err) {
+                statusText.innerText = "🔴 Connection Failed";
+            }
+        });
     }
 })();
