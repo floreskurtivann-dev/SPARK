@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="coi-serviceworker.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPARK | AI Energy Dashboard</title>
+    <title>SPARK SYSTEM</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -24,7 +25,7 @@
                 <canvas id="detection-canvas"></canvas>
             </div>
             <div class="info-bar">
-                <p>Status: <span id="labels-container">Connecting...</span></p>
+                <p>Status: <span id="labels-container">Loading AI Engine...</span></p>
             </div>
         </section>
 
@@ -38,10 +39,7 @@
         </section>
     </main>
 
-    <script src="coi-serviceworker.js"></script>
-
-    <script src="https://studio.edgeimpulse.com/v1/api/projects/929614/deployment/bundle/webassembly/browser/sdk"></script>
-
+    <script src="edge-impulse-standalone.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
