@@ -1,17 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="coi-serviceworker.js"></script>
-    
+    <script src="./coi-serviceworker.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPARK | AI Energy Dashboard</title>
-    
-    <link rel="stylesheet" href="style.css">
+    <title>SPARK SYSTEM</title>
+    <link rel="stylesheet" href="./style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-
     <header>
         <h1>SPARK <span>SYSTEM</span></h1>
         <div class="controls">
@@ -23,74 +20,57 @@
     <main class="dashboard-grid">
         <section class="card">
             <div class="card-title">YOLO-Pro Object Detection</div>
-            <div class="video-container" style="position: relative; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3;">
+            <div class="video-container" style="position: relative; background: #000; aspect-ratio: 4/3;">
                 <video id="webcam" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
                 <canvas id="detection-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
             </div>
             <div class="info-bar">
-                <p>Status: <span id="labels-container">Preparing System...</span></p>
+                <p>Status: <span id="labels-container">Awaiting System...</span></p>
             </div>
         </section>
 
         <section class="card">
             <div class="card-title">Piezo Energy Harvesting</div>
             <div class="metrics">
-                <div class="m-box">
-                    <small>VOLTAGE</small>
-                    <div class="val"><span id="cur-val">0.00</span>V</div>
-                </div>
-                <div class="m-box">
-                    <small>TOTAL ENERGY</small>
-                    <div class="val"><span id="total-val">0.00</span>J</div>
-                </div>
+                <div class="m-box"><small>VOLTAGE</small><div class="val"><span id="cur-val">0.00</span>V</div></div>
+                <div class="m-box"><small>TOTAL ENERGY</small><div class="val"><span id="total-val">0.00</span>J</div></div>
             </div>
-            <div class="chart-wrapper">
-                <canvas id="energyChart"></canvas>
-            </div>
+            <div class="chart-wrapper"><canvas id="energyChart"></canvas></div>
         </section>
     </main>
 
     <script>
         const label = document.getElementById('labels-container');
         
-        // Function to force-load scripts sequentially
         function loadScript(src) {
             return new Promise((resolve, reject) => {
                 const s = document.createElement('script');
-                s.src = src;
+                // Added ./ to ensure it stays in the SPARK folder
+                s.src = './' + src;
                 s.onload = resolve;
-                s.onerror = () => reject(new Error("Failed to load: " + src));
+                s.onerror = () => reject(new Error("Missing file: " + src));
                 document.body.appendChild(s);
             });
         }
 
         async function startApp() {
             try {
-                // 1. Load the AI Engine
-                label.innerText = "Loading AI Library...";
+                label.innerText = "Finding AI Files...";
                 await loadScript('edge-impulse-standalone.js?v=' + Date.now());
                 
-                // 2. Load the App Logic
-                label.innerText = "Loading Dashboard Logic...";
+                label.innerText = "Starting Logic...";
                 await loadScript('app.js?v=' + Date.now());
                 
-                // 3. Manually trigger the Camera/AI Start
-                label.innerText = "System Initialized. Accessing Camera...";
                 if (window.initAI) {
                     await window.initAI();
-                } else {
-                    label.innerText = "Error: App Logic not found.";
                 }
-                
             } catch (e) {
-                label.innerText = "Critical Error: " + e.message;
+                label.innerText = "Error: File not found in repository.";
                 console.error(e);
             }
         }
 
-        // Start the process when the window is ready
         window.onload = startApp;
     </script>
-
 </body>
 </html>
