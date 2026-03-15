@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="coi-serviceworker.js"></script>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPARK SYSTEM</title>
+    <title>SPARK | AI Energy Dashboard</title>
+    
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="coi-serviceworker.js"></script>
 </head>
 <body>
+
     <header>
         <h1>SPARK <span>SYSTEM</span></h1>
         <div class="controls">
@@ -20,28 +23,37 @@
     <main class="dashboard-grid">
         <section class="card">
             <div class="card-title">YOLO-Pro Object Detection</div>
-            <div class="video-container">
-                <video id="webcam" autoplay playsinline muted style="width:100%; border-radius: 8px;"></video>
-                <canvas id="detection-canvas" style="position: absolute; top: 0; left: 0;"></canvas>
+            <div class="video-container" style="position: relative; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3;">
+                <video id="webcam" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+                <canvas id="detection-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
             </div>
             <div class="info-bar">
-                <p>Status: <span id="labels-container">Awaiting Library...</span></p>
+                <p>Status: <span id="labels-container">Preparing System...</span></p>
             </div>
         </section>
 
         <section class="card">
             <div class="card-title">Piezo Energy Harvesting</div>
             <div class="metrics">
-                <div class="m-box"><small>VOLTAGE</small><div class="val"><span id="cur-val">0.00</span>V</div></div>
-                <div class="m-box"><small>TOTAL ENERGY</small><div class="val"><span id="total-val">0.00</span>J</div></div>
+                <div class="m-box">
+                    <small>VOLTAGE</small>
+                    <div class="val"><span id="cur-val">0.00</span>V</div>
+                </div>
+                <div class="m-box">
+                    <small>TOTAL ENERGY</small>
+                    <div class="val"><span id="total-val">0.00</span>J</div>
+                </div>
             </div>
-            <div class="chart-wrapper"><canvas id="energyChart"></canvas></div>
+            <div class="chart-wrapper">
+                <canvas id="energyChart"></canvas>
+            </div>
         </section>
     </main>
 
     <script>
         const label = document.getElementById('labels-container');
         
+        // Function to force-load scripts sequentially
         function loadScript(src) {
             return new Promise((resolve, reject) => {
                 const s = document.createElement('script');
@@ -54,21 +66,31 @@
 
         async function startApp() {
             try {
-                label.innerText = "Downloading AI Brain...";
-                // Load library with a cache-buster to force fresh download
+                // 1. Load the AI Engine
+                label.innerText = "Loading AI Library...";
                 await loadScript('edge-impulse-standalone.js?v=' + Date.now());
                 
-                label.innerText = "Downloading App Logic...";
+                // 2. Load the App Logic
+                label.innerText = "Loading Dashboard Logic...";
                 await loadScript('app.js?v=' + Date.now());
                 
-                label.innerText = "System Initialized.";
+                // 3. Manually trigger the Camera/AI Start
+                label.innerText = "System Initialized. Accessing Camera...";
+                if (window.initAI) {
+                    await window.initAI();
+                } else {
+                    label.innerText = "Error: App Logic not found.";
+                }
+                
             } catch (e) {
-                label.innerText = "CRITICAL BLOCK: Browser Security still active.";
+                label.innerText = "Critical Error: " + e.message;
                 console.error(e);
             }
         }
 
+        // Start the process when the window is ready
         window.onload = startApp;
     </script>
+
 </body>
 </html>
