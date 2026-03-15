@@ -1,26 +1,37 @@
+// Global Variables
 let chart;
 let port;
-let totalEnergy = 0;
+let classifier;
+const video = document.getElementById('webcam');
+const canvas = document.getElementById('detection-canvas');
+const ctx = canvas.getContext('2d');
+const labelElement = document.getElementById('labels-container');
 
-// Initialize Chart.js
+// 1. INITIALIZE CHART
 function initChart() {
-    const ctx = document.getElementById('energyChart').getContext('2d');
-    chart = new Chart(ctx, {
+    const chartCtx = document.getElementById('energyChart').getContext('2d');
+    chart = new Chart(chartCtx, {
         type: 'line',
         data: {
             labels: [],
             datasets: [{
-                label: 'Harvesting (Volts)',
+                label: 'Piezo Voltage (V)',
                 data: [],
-                borderColor: '#38bdf8',
+                borderColor: '#00d2ff',
+                backgroundColor: 'rgba(0, 210, 255, 0.1)',
+                fill: true,
                 tension: 0.4
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+        }
     });
 }
 
-// Web Serial: Connect to Arduino
+// 2. CONNECT TO ARDUINO (Web Serial)
 document.getElementById('btn-connect').addEventListener('click', async () => {
     try {
         port = await navigator.serial.requestPort();
@@ -28,7 +39,7 @@ document.getElementById('btn-connect').addEventListener('click', async () => {
         document.getElementById('statusText').innerText = "🟢 Connected";
         readSerial();
     } catch (e) {
-        console.error("Serial error:", e);
+        console.log("Serial Connection Cancelled");
     }
 });
 
@@ -40,44 +51,87 @@ async function readSerial() {
     while (true) {
         const { value, done } = await reader.read();
         if (value) {
-            // Expecting "current,total" from Arduino
             const data = value.split(',');
             if (data.length >= 2) {
-                const current = parseFloat(data[0]);
-                const total = parseFloat(data[1]);
+                const volts = parseFloat(data[0]);
+                const joules = parseFloat(data[1]);
                 
-                document.getElementById('cur-val').innerText = current.toFixed(2);
-                document.getElementById('total-val').innerText = total.toFixed(2);
+                document.getElementById('cur-val').innerText = volts.toFixed(2);
+                document.getElementById('total-val').innerText = joules.toFixed(2);
                 
-                updateChart(current);
+                // Update Chart
+                if (chart.data.labels.length > 15) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                }
+                chart.data.labels.push(new Date().toLocaleTimeString().split(' ')[0]);
+                chart.data.datasets[0].data.push(volts);
+                chart.update();
             }
         }
     }
 }
 
-function updateChart(val) {
-    if (chart.data.labels.length > 20) {
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
-    }
-    chart.data.labels.push(new Date().toLocaleTimeString());
-    chart.data.datasets[0].data.push(val);
-    chart.update();
-}
+// 3. START AI (Edge Impulse)
+async function initAI() {
+    console.log("AI Loading...");
+    try {
+        if (typeof EdgeImpulseClassifier === 'undefined') {
+            labelElement.innerText = "Error: Library not loaded";
+            return;
+        }
 
-// Edge Impulse Logic (Skeleton)
-async function startAI() {
-    const video = document.getElementById('webcam');
-    // Request webcam access
-    if (navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        classifier = new EdgeImpulseClassifier();
+        await classifier.init();
+        console.log("WASM Loaded!");
+
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "environment" } 
+        });
         video.srcObject = stream;
+
+        video.onloadedmetadata = () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            labelElement.innerText = "Model Ready: Scanning...";
+            runInference();
+        };
+    } catch (err) {
+        console.error(err);
+        labelElement.innerText = "AI Init Failed";
     }
-    
-    // NOTE: Here is where you call your Edge Impulse Classifier 
-    // using the methods provided in your edge-impulse-standalone.js
-    console.log("Model loaded. Ready for YOLO inference.");
 }
 
-initChart();
-startAI();
+async function runInference() {
+    try {
+        const result = await classifier.classify(video);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (result.bounding_boxes) {
+            result.bounding_boxes.forEach(box => {
+                if (box.value > 0.5) {
+                    // Draw Box
+                    ctx.strokeStyle = '#00d2ff';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(box.x, box.y, box.width, box.height);
+                    
+                    // Draw Label
+                    ctx.fillStyle = '#00d2ff';
+                    ctx.font = '16px Arial';
+                    ctx.fillText(`${box.label} (${(box.value * 100).toFixed(0)}%)`, box.x, box.y - 5);
+                    
+                    labelElement.innerText = `Detected: ${box.label}`;
+                }
+            });
+        }
+    } catch (e) {
+        console.error("Inference error:", e);
+    }
+    requestAnimationFrame(runInference);
+}
+
+// Start sequence
+window.onload = () => {
+    initChart();
+    initAI();
+};
