@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="coi-serviceworker.js"></script>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPARK | AI Energy Monitor</title>
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <h1>SPARK <span>SYSTEM</span></h1>
+        </div>
+        <div class="connection-panel">
+            <button id="btn-connect">Connect Arduino</button>
+            <span id="statusText">🔴 Offline</span>
+        </div>
+    </header>
+
+    <main class="dashboard-grid">
+        
+        <section class="card vision-card">
+            <div class="card-title">YOLO-Pro Object Detection</div>
+            <div class="video-container">
+                <video id="webcam" autoplay playsinline muted></video>
+                <canvas id="detection-canvas"></canvas>
+            </div>
+            <div class="detection-info">
+                <p>Status: <span id="labels-container">Initializing AI...</span></p>
+            </div>
+        </section>
+
+        <section class="card energy-card">
+            <div class="card-title">Piezo Energy Harvesting</div>
+            
+            <div class="metrics">
+                <div class="metric-box">
+                    <small>CURRENT VOLTAGE</small>
+                    <div class="num"><span id="cur-val">0.00</span><small>V</small></div>
+                </div>
+                <div class="metric-box">
+                    <small>TOTAL HARVESTED</small>
+                    <div class="num"><span id="total-val">0.00</span><small>J</small></div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="energyChart"></canvas>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="edge-impulse-standalone.js"></script>
+    
+    <script src="app.js"></script>
+
+</body>
+</html>

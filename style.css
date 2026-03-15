@@ -1,0 +1,77 @@
+:root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --accent: #38bdf8;
+    --text: #f8fafc;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--card);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+span { color: var(--accent); }
+
+.grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.card {
+    background: var(--card);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.video-container {
+    position: relative;
+    width: 100%;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#webcam, #detection-canvas {
+    width: 100%;
+    height: auto;
+}
+
+#detection-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.stats-row {
+    display: flex;
+    justify-content: space-around;
+    margin: 20px 0;
+}
+
+.stat-item { text-align: center; }
+.value { font-size: 2.5rem; font-weight: bold; color: var(--accent); }
+
+button {
+    background: var(--accent);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.chart-container { height: 250px; }
