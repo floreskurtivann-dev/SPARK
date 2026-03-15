@@ -1,25 +1,16 @@
 (function() {
-    let chart, classifier;
+    let classifier;
     const video = document.getElementById('webcam');
     const canvas = document.getElementById('detection-canvas');
     const ctx = canvas.getContext('2d');
     const labelElement = document.getElementById('labels-container');
 
-    async function initAI() {
+    // EXPOSE THE START FUNCTION GLOBALLY
+    window.initAI = async function() {
         try {
-            labelElement.innerText = "Connecting to AI Studio...";
-            
-            // Wait up to 5 seconds for the CDN to deliver the library
-            let TargetClass = null;
-            for (let i = 0; i < 10; i++) {
-                TargetClass = window.EdgeImpulseClassifier || window.Classifier;
-                if (TargetClass) break;
-                await new Promise(r => setTimeout(r, 500));
-                console.log("Waiting for library... attempt " + (i + 1));
-            }
-
+            const TargetClass = window.EdgeImpulseClassifier || window.Classifier;
             if (!TargetClass) {
-                labelElement.innerText = "Error: Library still blocked. Try Incognito Mode.";
+                labelElement.innerText = "Error: Library load failed.";
                 return;
             }
 
@@ -28,6 +19,8 @@
             await classifier.init();
             
             labelElement.innerText = "Opening Camera...";
+            
+            // Standard camera request
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { width: 640, height: 480, facingMode: "environment" } 
             });
@@ -43,9 +36,9 @@
 
         } catch (err) {
             console.error(err);
-            labelElement.innerText = "Camera Error: Please allow access.";
+            labelElement.innerText = "Camera Access Denied. Check permissions!";
         }
-    }
+    };
 
     async function runInference() {
         try {
@@ -68,25 +61,4 @@
         } catch (e) {}
         requestAnimationFrame(runInference);
     }
-
-    window.onload = () => {
-        // Simple Chart Setup
-        const chartCtx = document.getElementById('energyChart').getContext('2d');
-        chart = new Chart(chartCtx, {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: 'Voltage (V)', data: [], borderColor: '#00d2ff' }] }
-        });
-        initAI();
-    };
-
-    // Arduino Connect
-    document.getElementById('btn-connect').addEventListener('click', async () => {
-        try {
-            const port = await navigator.serial.requestPort();
-            await port.open({ baudRate: 9600 });
-            document.getElementById('statusText').innerText = "🟢 Connected";
-        } catch (e) {
-            document.getElementById('statusText').innerText = "🔴 Connection Failed";
-        }
-    });
 })();
