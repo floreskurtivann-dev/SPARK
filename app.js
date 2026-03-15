@@ -5,28 +5,41 @@
     const ctx = canvas.getContext('2d');
     const labelElement = document.getElementById('labels-container');
 
+    // --- STEP 1: FORCE LOAD THE LIBRARY ---
+    function loadLibrary() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'edge-impulse-standalone.js';
+            script.onload = () => {
+                console.log("SDK Script injected successfully.");
+                resolve();
+            };
+            script.onerror = () => reject();
+            document.head.appendChild(script);
+        });
+    }
+
     async function initAI() {
-        labelElement.innerText = "Searching for AI SDK...";
-        
-        // Try to find the library name in multiple common locations
-        let foundClass = null;
-        for (let i = 0; i < 20; i++) {
-            foundClass = window.EdgeImpulseClassifier || window.Classifier || (window.module && window.module.exports);
-            if (foundClass) break;
-            await new Promise(r => setTimeout(r, 500));
-        }
-
-        if (!foundClass) {
-            labelElement.innerText = "Error: SDK not detected. Try Chrome on Laptop.";
-            return;
-        }
-
         try {
-            labelElement.innerText = "Found SDK! Loading Brain...";
-            classifier = new foundClass();
+            labelElement.innerText = "Downloading AI Engine...";
+            await loadLibrary();
+
+            // Give the browser 1 second to parse the injected script
+            await new Promise(r => setTimeout(r, 1000));
+
+            // Search for the classifier class
+            const TargetClass = window.EdgeImpulseClassifier || window.Classifier;
+            
+            if (!TargetClass) {
+                labelElement.innerText = "Error: SDK Downloaded but not found in memory.";
+                return;
+            }
+
+            labelElement.innerText = "Initializing WASM...";
+            classifier = new TargetClass();
             await classifier.init();
             
-            labelElement.innerText = "Requesting Camera...";
+            labelElement.innerText = "Starting Camera...";
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { facingMode: "environment" } 
             });
@@ -36,11 +49,11 @@
                 video.play();
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
-                labelElement.innerText = "AI System Active";
+                labelElement.innerText = "System Active";
                 runInference();
             };
         } catch (err) {
-            labelElement.innerText = "Camera/AI Error: " + err.name;
+            labelElement.innerText = "Critical Error: " + err.name;
             console.error(err);
         }
     }
@@ -56,6 +69,7 @@
                         ctx.lineWidth = 3;
                         ctx.strokeRect(box.x, box.y, box.width, box.height);
                         ctx.fillStyle = '#00d2ff';
+                        ctx.font = "16px Arial";
                         ctx.fillText(`${box.label} ${(box.value * 100).toFixed(0)}%`, box.x, box.y - 10);
                         labelElement.innerText = `Detected: ${box.label}`;
                     }
@@ -65,8 +79,8 @@
         requestAnimationFrame(runInference);
     }
 
+    // --- CHART & ARDUINO ---
     window.addEventListener('load', () => {
-        // Initialize Chart
         const chartCtx = document.getElementById('energyChart').getContext('2d');
         chart = new Chart(chartCtx, {
             type: 'line',
@@ -76,7 +90,6 @@
         initAI();
     });
 
-    // Arduino Connection
     document.getElementById('btn-connect').addEventListener('click', async () => {
         try {
             port = await navigator.serial.requestPort();
