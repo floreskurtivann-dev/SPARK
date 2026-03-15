@@ -7,44 +7,27 @@
 
     window.initAI = async function() {
         try {
-            labelElement.innerText = "Searching for AI brain...";
-            
-            // Wait up to 30 seconds for the files to actually load
-            let TargetClass = null;
-            for (let i = 0; i < 60; i++) {
-                TargetClass = window.EdgeImpulseClassifier || window.Classifier;
-                if (TargetClass) break;
-                console.log("Still searching... attempt " + i);
-                await new Promise(r => setTimeout(r, 500));
-            }
-
+            let TargetClass = window.EdgeImpulseClassifier || window.Classifier;
             if (!TargetClass) {
-                labelElement.innerHTML = "<span style='color:red'>Files missing from GitHub! Re-upload them.</span>";
-                return;
+                labelElement.innerText = "Waking up AI...";
+                await new Promise(r => setTimeout(r, 2000));
+                TargetClass = window.EdgeImpulseClassifier || window.Classifier;
             }
 
-            labelElement.innerText = "Starting Engine...";
             classifier = new TargetClass();
             await classifier.init();
             
             labelElement.innerText = "Requesting Camera...";
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: 640, height: 480, facingMode: "environment" } 
-            });
-            
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             video.srcObject = stream;
             video.onloadedmetadata = () => {
                 video.play();
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
-                labelElement.innerText = "AI Online - Detecting...";
+                labelElement.innerText = "AI System Active";
                 runInference();
             };
-
-        } catch (err) {
-            console.error(err);
-            labelElement.innerText = "Camera Blocked. Click the 'Lock' icon in URL bar.";
-        }
+        } catch (err) { labelElement.innerText = "Camera Blocked. Check site settings."; }
     };
 
     async function runInference() {
@@ -54,12 +37,8 @@
             if (result.bounding_boxes) {
                 result.bounding_boxes.forEach(box => {
                     if (box.value > 0.5) {
-                        ctx.strokeStyle = '#00d2ff';
-                        ctx.lineWidth = 3;
+                        ctx.strokeStyle = '#00d2ff'; ctx.lineWidth = 3;
                         ctx.strokeRect(box.x, box.y, box.width, box.height);
-                        ctx.fillStyle = '#00d2ff';
-                        ctx.font = '18px Arial';
-                        ctx.fillText(`${box.label} ${(box.value * 100).toFixed(0)}%`, box.x, box.y - 10);
                         labelElement.innerText = `Detected: ${box.label}`;
                     }
                 });
