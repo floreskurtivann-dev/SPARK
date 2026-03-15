@@ -5,15 +5,12 @@
     const ctx = canvas.getContext('2d');
     const labelElement = document.getElementById('labels-container');
 
-    // --- STEP 1: FORCE LOAD THE LIBRARY ---
+    // 1. MANUALLY INJECT THE LIBRARY
     function loadLibrary() {
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.src = 'edge-impulse-standalone.js';
-            script.onload = () => {
-                console.log("SDK Script injected successfully.");
-                resolve();
-            };
+            script.onload = () => resolve();
             script.onerror = () => reject();
             document.head.appendChild(script);
         });
@@ -21,28 +18,36 @@
 
     async function initAI() {
         try {
-            labelElement.innerText = "Downloading AI Engine...";
+            labelElement.innerText = "Downloading Engine...";
             await loadLibrary();
+            await new Promise(r => setTimeout(r, 2000)); // Wait for JS to settle
 
-            // Give the browser 1 second to parse the injected script
-            await new Promise(r => setTimeout(r, 1000));
-
-            // Search for the classifier class
-            const TargetClass = window.EdgeImpulseClassifier || window.Classifier;
+            // 2. THE SCANNER: Find the AI class regardless of its name
+            let TargetClass = window.EdgeImpulseClassifier || window.Classifier;
             
             if (!TargetClass) {
-                labelElement.innerText = "Error: SDK Downloaded but not found in memory.";
+                console.log("Searching all window variables for AI...");
+                for (let key in window) {
+                    // Look for a class that has 'init' and 'classify' in its prototype
+                    if (typeof window[key] === 'function' && window[key].prototype && window[key].prototype.init && window[key].prototype.classify) {
+                        console.log("Detected AI Engine at:", key);
+                        TargetClass = window[key];
+                        break;
+                    }
+                }
+            }
+
+            if (!TargetClass) {
+                labelElement.innerText = "Error: Model not found in memory. Re-export as WASM.";
                 return;
             }
 
-            labelElement.innerText = "Initializing WASM...";
+            labelElement.innerText = "Waking up " + (TargetClass.name || "AI") + "...";
             classifier = new TargetClass();
             await classifier.init();
             
             labelElement.innerText = "Starting Camera...";
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "environment" } 
-            });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             video.srcObject = stream;
 
             video.onloadedmetadata = () => {
@@ -53,7 +58,7 @@
                 runInference();
             };
         } catch (err) {
-            labelElement.innerText = "Critical Error: " + err.name;
+            labelElement.innerText = "Hardware Error: " + err.name;
             console.error(err);
         }
     }
@@ -79,7 +84,7 @@
         requestAnimationFrame(runInference);
     }
 
-    // --- CHART & ARDUINO ---
+    // Chart and Arduino code
     window.addEventListener('load', () => {
         const chartCtx = document.getElementById('energyChart').getContext('2d');
         chart = new Chart(chartCtx, {
