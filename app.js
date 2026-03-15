@@ -7,26 +7,27 @@
 
     window.initAI = async function() {
         try {
-            labelElement.innerText = "Checking Library...";
+            labelElement.innerText = "Searching for AI brain...";
             
-            // This loop waits up to 10 seconds for the library to "wake up"
+            // Wait up to 30 seconds for the files to actually load
             let TargetClass = null;
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < 60; i++) {
                 TargetClass = window.EdgeImpulseClassifier || window.Classifier;
                 if (TargetClass) break;
+                console.log("Still searching... attempt " + i);
                 await new Promise(r => setTimeout(r, 500));
             }
 
             if (!TargetClass) {
-                labelElement.innerText = "Error: Library not responding.";
+                labelElement.innerHTML = "<span style='color:red'>Files missing from GitHub! Re-upload them.</span>";
                 return;
             }
 
-            labelElement.innerText = "Waking up AI...";
+            labelElement.innerText = "Starting Engine...";
             classifier = new TargetClass();
             await classifier.init();
             
-            labelElement.innerText = "Opening Camera...";
+            labelElement.innerText = "Requesting Camera...";
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { width: 640, height: 480, facingMode: "environment" } 
             });
@@ -36,13 +37,13 @@
                 video.play();
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
-                labelElement.innerText = "AI System Active";
+                labelElement.innerText = "AI Online - Detecting...";
                 runInference();
             };
 
         } catch (err) {
             console.error(err);
-            labelElement.innerText = "Camera Error. Check permissions!";
+            labelElement.innerText = "Camera Blocked. Click the 'Lock' icon in URL bar.";
         }
     };
 
