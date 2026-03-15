@@ -5,6 +5,7 @@
     const ctx = canvas.getContext('2d');
     const labelElement = document.getElementById('labels-container');
     
+    // UI Elements
     const btnConnect = document.getElementById('btn-connect');
     const statusText = document.getElementById('statusText');
     const curVal = document.getElementById('cur-val');
@@ -13,26 +14,33 @@
 
     window.initAI = async function() {
         try {
-            labelElement.innerText = "Waking up AI Engine...";
+            labelElement.innerHTML = "Waking up AI Engine... <span style='display:block; font-size: 0.8em; color: #888;'>Click here if stuck</span>";
             
-            // THE FIX: Wait until the class is actually a 'function' (constructor)
+            // Allow user to manually trigger if the auto-load hangs
+            labelElement.onclick = () => startHardware();
+
             let TargetClass = null;
-            for (let i = 0; i < 40; i++) {
+            for (let i = 0; i < 30; i++) {
                 TargetClass = window.EdgeImpulseClassifier || window.Classifier;
-                if (typeof TargetClass === 'function') break; 
+                if (typeof TargetClass === 'function') break;
                 await new Promise(r => setTimeout(r, 500));
             }
 
-            if (typeof TargetClass !== 'function') {
-                labelElement.innerText = "Error: Engine failed to prime. Refreshing...";
-                location.reload();
-                return;
+            if (typeof TargetClass === 'function') {
+                classifier = new TargetClass();
+                await classifier.init();
+                await startHardware();
+            } else {
+                labelElement.innerText = "Engine Timeout. Please Refresh.";
             }
+        } catch (err) {
+            labelElement.innerText = "Init Error: " + err.message;
+        }
+    };
 
-            classifier = new TargetClass();
-            await classifier.init();
-            
-            labelElement.innerText = "Connecting to Camera...";
+    async function startHardware() {
+        try {
+            labelElement.innerText = "Accessing Camera...";
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { facingMode: "environment", width: 640, height: 480 } 
             });
@@ -45,11 +53,10 @@
                 labelElement.innerText = "AI System Active";
                 runInference();
             };
-
-        } catch (err) {
-            labelElement.innerText = "Hardware Error: " + err.message;
+        } catch (e) {
+            labelElement.innerText = "Camera Blocked. Check site permissions.";
         }
-    };
+    }
 
     async function runInference() {
         try {
@@ -69,7 +76,7 @@
         requestAnimationFrame(runInference);
     }
 
-    // --- ARDUINO SERIAL LOGIC ---
+    // ARDUINO SERIAL LOGIC
     if ('serial' in navigator) {
         btnConnect.addEventListener('click', async () => {
             try {
@@ -77,7 +84,6 @@
                 await port.open({ baudRate: 9600 });
                 statusText.innerText = "🟢 Online";
                 btnConnect.innerText = "Connected";
-                
                 const reader = port.readable.getReader();
                 const decoder = new TextDecoder();
                 while (true) {
@@ -85,15 +91,10 @@
                     if (done) break;
                     const data = decoder.decode(value).trim();
                     if (data && !isNaN(data)) {
-                        const voltage = parseFloat(data);
-                        curVal.innerText = voltage.toFixed(2);
-                        totalEnergy += (voltage * 0.1);
-                        totalVal.innerText = totalEnergy.toFixed(3);
+                        curVal.innerText = parseFloat(data).toFixed(2);
                     }
                 }
-            } catch (err) {
-                statusText.innerText = "🔴 Connection Failed";
-            }
+            } catch (err) { statusText.innerText = "🔴 Connection Failed"; }
         });
     }
 })();
