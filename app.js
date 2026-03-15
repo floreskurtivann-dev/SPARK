@@ -1,5 +1,5 @@
 (function() {
-    let chart, port, classifier;
+    let chart, classifier;
     const video = document.getElementById('webcam');
     const canvas = document.getElementById('detection-canvas');
     const ctx = canvas.getContext('2d');
@@ -7,29 +7,22 @@
 
     async function initAI() {
         try {
-            labelElement.innerText = "Checking Memory...";
+            labelElement.innerText = "Connecting to AI...";
             
-            // Wait up to 5 seconds for the library to finish loading
-            let TargetClass = null;
-            for (let i = 0; i < 10; i++) {
-                TargetClass = window.EdgeImpulseClassifier || window.Classifier || window.EdgeImpulse;
-                if (TargetClass) break;
-                await new Promise(r => setTimeout(r, 500));
-            }
+            // Wait for library
+            await new Promise(r => setTimeout(r, 2000));
+            const TargetClass = window.EdgeImpulseClassifier || window.Classifier;
 
             if (!TargetClass) {
-                labelElement.innerText = "Error: Library Load Failed.";
+                labelElement.innerText = "Error: Library still blocked.";
                 return;
             }
 
-            labelElement.innerText = "Starting " + (TargetClass.name || "AI") + "...";
             classifier = new TargetClass();
             await classifier.init();
             
-            labelElement.innerText = "Opening Camera...";
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: 640, height: 480 } 
-            });
+            labelElement.innerText = "Starting Camera...";
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             video.srcObject = stream;
 
             video.onloadedmetadata = () => {
@@ -40,8 +33,7 @@
                 runInference();
             };
         } catch (err) {
-            labelElement.innerText = "Error: " + err.name;
-            console.error(err);
+            labelElement.innerText = "Check Camera Permissions";
         }
     }
 
@@ -53,10 +45,7 @@
                 result.bounding_boxes.forEach(box => {
                     if (box.value > 0.5) {
                         ctx.strokeStyle = '#00d2ff';
-                        ctx.lineWidth = 3;
                         ctx.strokeRect(box.x, box.y, box.width, box.height);
-                        ctx.fillStyle = '#00d2ff';
-                        ctx.fillText(`${box.label} ${(box.value * 100).toFixed(0)}%`, box.x, box.y - 10);
                         labelElement.innerText = `Detected: ${box.label}`;
                     }
                 });
@@ -65,23 +54,12 @@
         requestAnimationFrame(runInference);
     }
 
-    window.addEventListener('load', () => {
-        // Init Chart
+    window.onload = () => {
         const chartCtx = document.getElementById('energyChart').getContext('2d');
         chart = new Chart(chartCtx, {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'Voltage (V)', data: [], borderColor: '#00d2ff' }] },
-            options: { responsive: true, maintainAspectRatio: false }
+            data: { labels: [], datasets: [{ label: 'Voltage', data: [], borderColor: '#00d2ff' }] }
         });
         initAI();
-    });
-
-    // Connect Button
-    document.getElementById('btn-connect').addEventListener('click', async () => {
-        try {
-            port = await navigator.serial.requestPort();
-            await port.open({ baudRate: 9600 });
-            document.getElementById('statusText').innerText = "🟢 Connected";
-        } catch (e) { console.log(e); }
-    });
+    };
 })();
