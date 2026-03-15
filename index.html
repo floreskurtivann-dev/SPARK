@@ -1,13 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="coi-serviceworker.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./coi-serviceworker.js');
+        }
+    </script>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SPARK | AI Energy Dashboard</title>
+    
+    <link rel="icon" href="data:,">
     <link rel="stylesheet" href="style.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+
     <header>
         <h1>SPARK <span>SYSTEM</span></h1>
         <div class="controls">
@@ -24,7 +35,7 @@
                 <canvas id="detection-canvas"></canvas>
             </div>
             <div class="info-bar">
-                <p>Status: <span id="labels-container">Initializing...</span></p>
+                <p>Status: <span id="labels-container">Initializing System...</span></p>
             </div>
         </section>
 
@@ -38,7 +49,12 @@
         </section>
     </main>
 
-    <script src="https://studio.edgeimpulse.com/v1/api/projects/929614/deployment/bundle/webassembly/browser/sdk"></script>
+    <script 
+        src="https://studio.edgeimpulse.com/v1/api/projects/929614/deployment/bundle/webassembly/browser/sdk" 
+        crossorigin="anonymous">
+    </script>
+
     <script src="app.js"></script>
+
 </body>
 </html>
