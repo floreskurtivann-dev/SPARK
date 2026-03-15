@@ -1,84 +1,47 @@
-// Wrap everything in an IIFE to prevent variable conflicts
 (function() {
-    let chart;
-    let port;
-    let classifier;
+    let chart, port, classifier;
     const video = document.getElementById('webcam');
     const canvas = document.getElementById('detection-canvas');
     const ctx = canvas.getContext('2d');
     const labelElement = document.getElementById('labels-container');
 
-    function initChart() {
-        const chartCtx = document.getElementById('energyChart').getContext('2d');
-        chart = new Chart(chartCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Piezo Voltage (V)',
-                    data: [],
-                    borderColor: '#00d2ff',
-                    backgroundColor: 'rgba(0, 210, 255, 0.1)',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false,
-                scales: { y: { min: 0, max: 5 } }
-            }
-        });
-    }
-
     async function initAI() {
-        labelElement.innerText = "Waiting for System...";
+        labelElement.innerText = "Searching for AI SDK...";
         
-        // Wait until the library is actually defined in the window
-        let retries = 0;
-        const checkLibrary = () => {
-            return typeof window.EdgeImpulseClassifier !== 'undefined' || typeof window.Classifier !== 'undefined';
-        };
-
-        while (!checkLibrary() && retries < 30) {
+        // Try to find the library name in multiple common locations
+        let foundClass = null;
+        for (let i = 0; i < 20; i++) {
+            foundClass = window.EdgeImpulseClassifier || window.Classifier || (window.module && window.module.exports);
+            if (foundClass) break;
             await new Promise(r => setTimeout(r, 500));
-            retries++;
-            console.log("Searching for AI Library... trial " + retries);
+        }
+
+        if (!foundClass) {
+            labelElement.innerText = "Error: SDK not detected. Try Chrome on Laptop.";
+            return;
         }
 
         try {
-            const TargetClass = window.EdgeImpulseClassifier || window.Classifier;
-            
-            if (!TargetClass) {
-                throw new Error("LibraryNotFound");
-            }
-
-            labelElement.innerText = "Loading AI Brain...";
-            classifier = new TargetClass();
+            labelElement.innerText = "Found SDK! Loading Brain...";
+            classifier = new foundClass();
             await classifier.init();
             
-            labelElement.innerText = "Starting Camera...";
-
+            labelElement.innerText = "Requesting Camera...";
             const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: 640, height: 480, facingMode: "environment" } 
+                video: { facingMode: "environment" } 
             });
-            
             video.srcObject = stream;
+
             video.onloadedmetadata = () => {
                 video.play();
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
-                labelElement.innerText = "System Active";
+                labelElement.innerText = "AI System Active";
                 runInference();
             };
-
         } catch (err) {
+            labelElement.innerText = "Camera/AI Error: " + err.name;
             console.error(err);
-            if (err.message === "LibraryNotFound") {
-                labelElement.innerText = "Error: AI Library not found. Check index.html order.";
-            } else {
-                labelElement.innerText = "Camera Error: Please allow access.";
-            }
         }
     }
 
@@ -86,7 +49,6 @@
         try {
             const result = await classifier.classify(video);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
             if (result.bounding_boxes) {
                 result.bounding_boxes.forEach(box => {
                     if (box.value > 0.5) {
@@ -94,7 +56,6 @@
                         ctx.lineWidth = 3;
                         ctx.strokeRect(box.x, box.y, box.width, box.height);
                         ctx.fillStyle = '#00d2ff';
-                        ctx.font = '18px Arial';
                         ctx.fillText(`${box.label} ${(box.value * 100).toFixed(0)}%`, box.x, box.y - 10);
                         labelElement.innerText = `Detected: ${box.label}`;
                     }
@@ -104,39 +65,37 @@
         requestAnimationFrame(runInference);
     }
 
-    // Arduino logic
+    window.addEventListener('load', () => {
+        // Initialize Chart
+        const chartCtx = document.getElementById('energyChart').getContext('2d');
+        chart = new Chart(chartCtx, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Voltage (V)', data: [], borderColor: '#00d2ff', fill: true }] },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+        initAI();
+    });
+
+    // Arduino Connection
     document.getElementById('btn-connect').addEventListener('click', async () => {
         try {
             port = await navigator.serial.requestPort();
             await port.open({ baudRate: 9600 });
             document.getElementById('statusText').innerText = "🟢 Connected";
-            
             const decoder = new TextDecoderStream();
             port.readable.pipeTo(decoder.writable);
             const reader = decoder.readable.getReader();
-
             while (true) {
-                const { value, done } = await reader.read();
+                const { value } = await reader.read();
                 if (value) {
-                    const volts = parseFloat(value.split(',')[0]);
-                    if(!isNaN(volts)) {
-                        document.getElementById('cur-val').innerText = volts.toFixed(2);
-                        if (chart.data.labels.length > 15) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
-                        chart.data.labels.push(new Date().toLocaleTimeString().split(' ')[0]);
-                        chart.data.datasets[0].data.push(volts);
-                        chart.update();
-                    }
+                    const v = parseFloat(value.split(',')[0]);
+                    document.getElementById('cur-val').innerText = v.toFixed(2);
+                    if (chart.data.labels.length > 15) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
+                    chart.data.labels.push(new Date().toLocaleTimeString().split(' ')[0]);
+                    chart.data.datasets[0].data.push(v);
+                    chart.update();
                 }
-                if (done) break;
             }
-        } catch (e) {
-            document.getElementById('statusText').innerText = "🔴 Disconnected";
-        }
-    });
-
-    // START ON LOAD
-    window.addEventListener('load', () => {
-        initChart();
-        initAI();
+        } catch (e) { document.getElementById('statusText').innerText = "🔴 Off"; }
     });
 })();
