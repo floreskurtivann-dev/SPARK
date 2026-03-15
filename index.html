@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./coi-serviceworker.js', { scope: './' })
+                .then(() => console.log("Security Layer: Active"))
+                .catch(err => console.error("Security Layer: Failed", err));
+        }
+    </script>
     <script src="coi-serviceworker.js"></script>
     
     <meta charset="UTF-8">
