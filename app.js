@@ -46,7 +46,7 @@ async function initAI() {
         classifier = new TargetClass();
         await classifier.init();
         
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
 
         video.onloadedmetadata = () => {
