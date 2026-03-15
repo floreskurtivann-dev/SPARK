@@ -30,7 +30,7 @@
                 <canvas id="detection-canvas"></canvas>
             </div>
             <div class="info-bar">
-                <p>Status: <span id="labels-container">Initializing AI...</span></p>
+                <p>Status: <span id="labels-container">Initializing Engine...</span></p>
             </div>
         </section>
 
@@ -53,14 +53,8 @@
     </main>
 
     <script src="edge-impulse-standalone.js"></script>
-
-    <script>
-        console.log("Checking for library...");
-        if (typeof EdgeImpulseClassifier === 'undefined') {
-            console.error("Library still not found in HTML!");
-        }
-    </script>
     
-    <script src="app.js"></script>
+    <script src="app.js" defer></script>
+
 </body>
 </html>
