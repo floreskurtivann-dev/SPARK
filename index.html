@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="coi-serviceworker.js"></script>
-    
     <meta charset="UTF-8">
     <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
     <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
@@ -11,6 +9,8 @@
     
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="coi-serviceworker.js"></script>
 </head>
 <body>
     <header>
@@ -29,7 +29,7 @@
                 <canvas id="detection-canvas"></canvas>
             </div>
             <div class="info-bar">
-                <p>Status: <span id="labels-container">Bypassing Security...</span></p>
+                <p>Status: <span id="labels-container">Initializing...</span></p>
             </div>
         </section>
 
