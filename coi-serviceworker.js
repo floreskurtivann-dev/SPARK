@@ -1,25 +1,38 @@
 /*! coi-serviceworker v0.1.7 | MIT License | https://github.com/gzuidhof/coi-serviceworker */
-if (typeof window === 'undefined') {
+if (typeof window === "undefined") {
     self.addEventListener("install", () => self.skipWaiting());
     self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
     self.addEventListener("fetch", (event) => {
-        if (event.request.cache === "only-if-cached" && event.request.mode !== "same-origin") return;
+        if (event.request.cache === "only-if-cached" && event.request.mode !== "same-origin") {
+            return;
+        }
+
         event.respondWith(
             fetch(event.request).then((response) => {
-                if (response.status === 0) return response;
+                if (response.status === 0) {
+                    return response;
+                }
+
                 const newHeaders = new Headers(response.headers);
                 newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
-                newHeaders.set("Cross-Origin-Resource-Policy", "cross-origin");
                 newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
-                return new Response(response.body, { status: response.status, statusText: response.statusText, headers: newHeaders });
-            })
+
+                return new Response(response.body, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: newHeaders,
+                });
+            }).catch((e) => console.error(e))
         );
     });
 } else {
     const n = navigator.serviceWorker;
-    if (n && n.controller && n.controller.state === "activated") {
-        console.log("COI Worker Active");
-    } else if (n) {
-        n.register(window.document.currentScript.src).then(r => r.update());
+    if (n && n.controller) {
+        n.addEventListener("controllerchange", () => {
+            window.location.reload();
+        });
     }
+
+    n.register(window.document.currentScript.src);
 }
