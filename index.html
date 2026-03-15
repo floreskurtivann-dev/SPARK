@@ -53,6 +53,14 @@
     </main>
 
     <script src="edge-impulse-standalone.js"></script>
+
+    <script>
+        console.log("Checking for library...");
+        if (typeof EdgeImpulseClassifier === 'undefined') {
+            console.error("Library still not found in HTML!");
+        }
+    </script>
+    
     <script src="app.js"></script>
 </body>
 </html>
